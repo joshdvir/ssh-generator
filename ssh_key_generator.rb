@@ -44,8 +44,8 @@ def generate_keys(type, key_size)
     'ssh-keygen', '-t', type, '-b', key_size.to_s, '-f',
     "/tmp/#{random_string}", '-N', '', '-q', '-C', ''
   )
-  private_key = File.read("/tmp/#{random_string}")
-  public_key = File.read("/tmp/#{random_string}.pub")
+  private_key = File.read("/tmp/#{random_string}").strip
+  public_key = File.read("/tmp/#{random_string}.pub").strip
   File.unlink("/tmp/#{random_string}")
   File.unlink("/tmp/#{random_string}.pub")
   [public_key, private_key]
