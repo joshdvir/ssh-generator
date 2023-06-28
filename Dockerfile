@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 9292
 
 # Start the web service
-CMD ["bundle", "exec", "rackup", "--host", "0.0.0.0"]
+CMD ["bundle", "exec", "puma", "-b", "0.0.0.0", "-w", "2", "-t", "8:32", "-e", "production"]
