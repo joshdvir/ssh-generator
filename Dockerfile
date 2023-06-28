@@ -1,5 +1,5 @@
 # Use a Ruby base image
-FROM ruby:3.2-alpine
+FROM ruby:3.2-slim
 
 # Set the working directory
 WORKDIR /app
