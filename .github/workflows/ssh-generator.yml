@@ -3,7 +3,7 @@ name: ssh-generator Image
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   build-and-push:
