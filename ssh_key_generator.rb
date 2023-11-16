@@ -14,34 +14,45 @@ get '/' do
 end
 
 post '/generate' do
-  key_type = params[:key_type]
-  key_size = params[:key_size].to_i
-
-  public_key, private_key = generate_ssh_keys(key_type, key_size)
+  content_type :html
+  type, size = default_sizes(params)
+  public_key, private_key = generate_ssh_keys(type, size)
 
   erb :result, locals: { public_key: public_key, private_key: private_key }
 end
 
-def generate_ssh_keys(key_type, key_size)
-  case key_type
-  when 'rsa'
-    public_key, private_key = generate_keys('rsa', key_size)
-  when 'dsa'
-    public_key, private_key = generate_keys('dsa', key_size)
-  when 'ecdsa'
-    public_key, private_key = generate_keys('ecdsa', key_size)
-  when 'ed25519'
-    public_key, private_key = generate_keys('ed25519', key_size)
+post '/keys' do
+  content_type :json
+  type, size = default_sizes(params)
+  public_key, private_key = generate_ssh_keys(type, size)
+
+  { public_key: public_key, private_key: private_key }.to_json
+end
+
+def default_sizes(params)
+  type = params.key?('type') && KEY_SIZES.keys.include?(params[:type]) ? params[:type] : 'ed25519'
+  size = if params.key?('size') && KEY_SIZES[type].include?(params[:size].to_i)
+           params[:size].to_i
+         else
+           KEY_SIZES[type].first
+         end
+  [type, size]
+end
+
+def generate_ssh_keys(type, size)
+  case type
+  when 'rsa', 'dsa', 'ecdsa', 'ed25519'
+    public_key, private_key = generate_keys(type, size)
   else
     raise 'Unsupported key type'
   end
   [public_key, private_key]
 end
 
-def generate_keys(type, key_size)
+def generate_keys(type, size)
   random_string = SecureRandom.hex
   Open3.capture2(
-    'ssh-keygen', '-t', type, '-b', key_size.to_s, '-f',
+    'ssh-keygen', '-t', type, '-b', size.to_s, '-f',
     "/tmp/#{random_string}", '-N', '', '-q', '-C', ''
   )
   private_key = File.read("/tmp/#{random_string}").strip
@@ -90,7 +101,7 @@ __END__
             <div class="mdl-card__supporting-text">
               <form action="/generate" method="post">
                 <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                  <select name="key_type" id="key_type" class="mdl-textfield__input">
+                  <select name="type" id="type" class="mdl-textfield__input">
                     <option value="ed25519">ED25519</option>
                     <option value="ecdsa">ECDSA</option>
                     <option value="dsa">DSA</option>
@@ -99,7 +110,7 @@ __END__
                   <label class="mdl-textfield__label" >Key Type</label>
                 </div>
                 <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                  <select name="key_size" id="key_size" class="mdl-textfield__input">
+                  <select name="size" id="size" class="mdl-textfield__input">
                     <option value="512">512</option>
                     <option value="256">256</option>
                   </select>
@@ -119,8 +130,8 @@ __END__
   </div>
   <script>
     function updateKeySizes() {
-      var keyType = document.getElementById('key_type').value;
-      var keySizeSelect = document.getElementById('key_size');
+      var keyType = document.getElementById('type').value;
+      var keySizeSelect = document.getElementById('size');
 
       // Clear previous options
       keySizeSelect.innerHTML = '';
@@ -134,7 +145,7 @@ __END__
         keySizeSelect.appendChild(option);
       }
     }
-    document.getElementById('key_type').addEventListener('change', updateKeySizes);
+    document.getElementById('type').addEventListener('change', updateKeySizes);
   </script>
 </body>
 </html>
